@@ -1,0 +1,36 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/doc-intelligence:$COMMIT_SHA'
+      - '-f'
+      - 'deployment/Dockerfile'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/doc-intelligence:$COMMIT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'doc-intelligence'
+      - '--image=gcr.io/$PROJECT_ID/doc-intelligence:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=8Gi'
+      - '--cpu=4'
+      - '--concurrency=1'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--timeout=300s'
+      - '--set-env-vars=MODEL_NAME=Qwen/Qwen2-VL-2B-Instruct'
+      - '--set-secrets=API_KEY=doc-intelligence-api-key:latest,PGVECTOR_DSN=doc-intelligence-db-dsn:latest,MLFLOW_TRACKING_URI=doc-intelligence-mlflow-uri:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/doc-intelligence:$COMMIT_SHA'
